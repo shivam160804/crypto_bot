@@ -4,7 +4,7 @@ const axios = require('axios');
 const db = require('../db/db');
 
 const router = express.Router();
-const SPRING_BOOT_URL = process.env.SPRING_BOOT_URL || "http://localhost:1106";
+const SPRING_BOOT_URL = process.env.SPRING_BOOT_URL || "https://cryptonex-backend.onrender.com";
 
 // Helper function to fetch user profile from Spring Boot
 async function fetchUserProfile(authHeader) {
