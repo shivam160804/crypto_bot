@@ -30,8 +30,7 @@ app.use('/usercoinPortfolio', usercoinPortfolioRoutes);
 app.use("/chat", chatRoutes);
 
 
-// Import and start cron jobs
-require("./cron/jobs");
+
 
 
 
