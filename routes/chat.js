@@ -6,7 +6,7 @@ const db = require("../db/db");
 
 const router = express.Router();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const SPRING_BOOT_URL = process.env.SPRING_BOOT_URL || "http://localhost:1106";
+const SPRING_BOOT_URL = process.env.SPRING_BOOT_URL || "https://cryptonex-backend.onrender.com";
 
 // Global in-memory object to hold conversation context
 const conversationMemory = {};
