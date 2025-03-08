@@ -209,11 +209,9 @@ router.post("/", async (req, res) => {
       }
       const parsedNumber = parseFloat(amountMatch[0]);
       
-      // Determine if the user specified a dollar amount (if query contains "dollar", "usd", or "worth")
+      // Determine if the user specified a dollar amount
       const isDollar = cleanMessage.includes("dollar") || cleanMessage.includes("usd") || cleanMessage.includes("worth");
       
-      // For BUY: if dollar amount, quantity = amount/price; if quantity is specified, quantity = parsedNumber
-      // For SELL: assume the number means quantity directly
       let quantity;
       if (orderType === "BUY") {
         if (isDollar) {
@@ -245,7 +243,7 @@ router.post("/", async (req, res) => {
         return res.json({ reply });
       }
       
-      // For BUY, validate wallet balance; for SELL, validate portfolio quantity
+      // Validate wallet balance for BUY; for SELL, validate portfolio quantity
       if (orderType === "BUY") {
         const wallet = await fetchUserWallet(authHeader);
         if (!wallet) {
@@ -282,7 +280,7 @@ router.post("/", async (req, res) => {
         }
       }
       
-      // Use the full coin name from the database (in lowercase) as coin id
+      // Place order using coin details and order data
       const coinId = cryptoData.name.toLowerCase();
       const orderData = {
         coinId,
@@ -308,7 +306,7 @@ router.post("/", async (req, res) => {
     }
     // ---------------- End Buy/Sell Branch ----------------
     
-    // If coin is mentioned and query includes "holding", handle portfolio holding check
+    // Handle portfolio holding queries
     if (coinName && authHeader && (cleanMessage.includes("holding") || cleanMessage.includes("am i holding"))) {
       const portfolio = await fetchUserPortfolio(authHeader);
       if (!portfolio) {
@@ -333,7 +331,7 @@ router.post("/", async (req, res) => {
       }
     }
     
-    // If a coin is mentioned, handle general crypto data queries (price, market cap, etc.)
+    // If a coin is mentioned, handle general crypto data queries
     if (coinName) {
       const cryptoData = await getCryptoData(coinName);
       if (cryptoData) {
@@ -357,92 +355,20 @@ router.post("/", async (req, res) => {
       }
     }
     
-    // Handle other authenticated queries (profile, portfolio, orders, wallet, transactions)
-    if (authHeader) {
-      if (cleanMessage.includes("my profile")) {
-        const profile = await fetchUserProfile(authHeader);
-        if (!profile) {
-          const reply = "❌ Couldn't fetch your profile";
-          updateConversationMemory(userId, cleanMessage, reply);
-          return res.json({ reply });
-        }
-        const reply = `👤 Your Profile:
-          Name: ${profile.fullName}
-          Email: ${profile.email}
-          Phone: ${profile.mobile || 'Not provided'}
-          Address: ${[profile.address, profile.city, profile.postcode, profile.country].filter(Boolean).join(', ')}
-          DOB: ${profile.dob ? new Date(profile.dob).toISOString().split('T')[0] : 'Not provided'}`
-          .replace(/\s+/g, ' ')
-          .trim();
-        updateConversationMemory(userId, cleanMessage, reply);
-        return res.json({ reply });
-      }
-      
-      if (cleanMessage.includes("my portfolio")) {
-        const portfolio = await fetchUserPortfolio(authHeader);
-        if (!portfolio) {
-          const reply = "❌ Couldn't fetch your portfolio";
-          updateConversationMemory(userId, cleanMessage, reply);
-          return res.json({ reply });
-        }
-        const portfolioDetails = await Promise.all(
-          portfolio.map(async (asset) => {
-            const coinData = await getCryptoData(asset.coin.id);
-            return `${asset.coin.name} (${asset.coin.symbol}): ${asset.quantity} @ $${coinData?.price || 'N/A'}`;
-          })
-        );
-        const reply = `📦 Your Portfolio:\n${portfolioDetails.join('\n')}`;
-        updateConversationMemory(userId, cleanMessage, reply);
-        return res.json({ reply });
-      }
-      
-      if (cleanMessage.includes("my orders")) {
-        const orders = await fetchOrderHistory(authHeader);
-        if (!orders) {
-          const reply = "❌ Couldn't fetch your orders";
-          updateConversationMemory(userId, cleanMessage, reply);
-          return res.json({ reply });
-        }
-        const orderDetails = orders.map(order =>
-          `${order.type.toUpperCase()} ${order.quantity} ${order.coin} @ $${order.price}`
-        );
-        const reply = `📝 Order History:\n${orderDetails.join('\n')}`;
-        updateConversationMemory(userId, cleanMessage, reply);
-        return res.json({ reply });
-      }
-      
-      if (cleanMessage.includes("wallet balance")) {
-        const wallet = await fetchUserWallet(authHeader);
-        if (!wallet) {
-          const reply = "❌ Couldn't fetch wallet balance";
-          updateConversationMemory(userId, cleanMessage, reply);
-          return res.json({ reply });
-        }
-        const reply = `💰 Wallet Balance: $${wallet.balance.toFixed(2)}\nWallet ID: #FAVHJY${wallet.id}`;
-        updateConversationMemory(userId, cleanMessage, reply);
-        return res.json({ reply });
-      }
-      
-      if (cleanMessage.includes("wallet history") || cleanMessage.includes("wallet transactions")) {
-        const transactions = await fetchWalletTransactions(authHeader);
-        if (!transactions) {
-          const reply = "❌ Couldn't fetch transactions";
-          updateConversationMemory(userId, cleanMessage, reply);
-          return res.json({ reply });
-        }
-        const transactionList = transactions
-          .slice(0, 5)
-          .map(t => `${t.date}: ${t.type} $${t.amount} (${t.purpose || 'No description'})`)
-          .join('\n');
-        const reply = `📝 Recent Transactions:\n${transactionList || 'No transactions found'}`;
-        updateConversationMemory(userId, cleanMessage, reply);
-        return res.json({ reply });
+    // For authenticated queries (profile, portfolio, orders, wallet, transactions),
+    // we include additional context only if the query contains specific keywords.
+    let includeUserData = false;
+    const sensitiveKeywords = ["profile", "portfolio", "orders", "wallet", "transaction"];
+    for (const keyword of sensitiveKeywords) {
+      if (cleanMessage.includes(keyword)) {
+        includeUserData = true;
+        break;
       }
     }
     
-    // General AI response branch with conversation history and verified data
+    // Build context from user data only if needed
     const contextParts = [];
-    if (authHeader) {
+    if (authHeader && includeUserData) {
       const [profile, portfolio, wallet] = await Promise.all([
         fetchUserProfile(authHeader),
         fetchUserPortfolio(authHeader),
@@ -469,17 +395,13 @@ router.post("/", async (req, res) => {
     }
     
     const conversationHistory = conversationMemory[userId].history.slice(-10).join("\n");
-    const prompt = `You are a financial assistant with full access to the user's data.
-Use the following conversation history to maintain context:
-${conversationHistory}
-
-Additionally, use the verified user data below:
-${contextParts.join('\n\n')}
-
+    
+    // Build the final prompt. If no sensitive keywords are detected, omit the user data context.
+    const prompt = `You are a financial assistant.
+${conversationHistory ? "Conversation History:\n" + conversationHistory + "\n" : ""}
+${includeUserData && contextParts.length > 0 ? "User Data:\n" + contextParts.join('\n\n') + "\n" : ""}
 Current Query: "${cleanMessage}"
-Provide a detailed, specific response using the available data.
-For portfolio questions, list exact holdings with values.
-For wallet questions, include exact amounts and recent transactions.`;
+Provide a detailed, specific response.`;
     
     const result = await model.generateContent(prompt);
     const reply = cleanResponse(result.response.text());
