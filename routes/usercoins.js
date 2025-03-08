@@ -6,7 +6,7 @@ const blockchain = require('../services/blockchain');
 
 const router = express.Router();
 
-const SPRING_BOOT_URL = process.env.SPRING_BOOT_URL || "http://localhost:1106";
+const SPRING_BOOT_URL = process.env.SPRING_BOOT_URL || "https://cryptonex-backend.onrender.com";
 
 // Helper function to fetch user profile from Spring Boot
 async function fetchUserProfile(authHeader) {
