@@ -452,6 +452,10 @@ router.post("/", async (req, res) => {
         contextParts.push(
           `👤 User Profile:\n- Name: ${profile.fullName}\n- Email: ${profile.email}\n- Phone: ${profile.mobile || 'Not provided'}`
         );
+
+        if (wallet|| balance) {
+  contextParts.push(`💰 Wallet Balance: $${wallet.balance.toFixed(2)}\n🔖 Wallet ID: #FAVHJY${wallet.id}`);
+}
       }
       if (portfolio && portfolio.length > 0) {
         const portfolioDetails = await Promise.all(
