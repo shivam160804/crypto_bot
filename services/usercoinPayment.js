@@ -1,6 +1,6 @@
 // File: services/usercoinPayment.js
 const axios = require('axios');
-const SPRING_BOOT_URL = process.env.SPRING_BOOT_URL || "http://localhost:1106";
+const SPRING_BOOT_URL = process.env.SPRING_BOOT_URL || "https://cryptonex-backend.onrender.com";
 
 /**
  * Process payment for an order using the Spring Boot API.
