@@ -11,18 +11,31 @@ const SPRING_BOOT_URL = process.env.SPRING_BOOT_URL || "https://cryptonex-backen
 // Global in-memory object to hold conversation context
 const conversationMemory = {};
 
-// Helper function to update conversation history for a user
-function updateConversationMemory(userId, userMessage, botReply) {
-  if (!conversationMemory[userId].history) {
-    conversationMemory[userId].history = [];
-  }
-  conversationMemory[userId].history.push(`User: ${userMessage}`);
-  conversationMemory[userId].history.push(`Bot: ${botReply}`);
+const conversationMemory = { history: [] };
+let inactivityTimer;
+
+// Helper function to update conversation history
+function updateConversationMemory(userMessage, botReply) {
+  conversationMemory.history.push(`User: ${userMessage}`);
+  conversationMemory.history.push(`Bot: ${botReply}`);
+  
   // Limit history to the most recent 20 entries
-  if (conversationMemory[userId].history.length > 20) {
-    conversationMemory[userId].history = conversationMemory[userId].history.slice(-20);
+  if (conversationMemory.history.length > 20) {
+    conversationMemory.history = conversationMemory.history.slice(-20);
   }
+  
+  // Reset the inactivity timer
+  if (inactivityTimer) {
+    clearTimeout(inactivityTimer);
+  }
+  
+  // Set a new inactivity timer for 5 minutes (300,000 ms)
+  inactivityTimer = setTimeout(() => {
+    conversationMemory.history = [];
+    console.log("Cleared conversation history due to inactivity.");
+  }, 300000);
 }
+
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
