@@ -3,7 +3,8 @@ const db = require("../db/db");
 require("dotenv").config();
 
 const COINGECKO_API_URL = "https://api.coingecko.com/api/v3/coins/markets";
-const API_KEY = process.env.COINGECKO_API_KEY;
+const API_KEY = "CG-yYW28XmphrN4nEcu8dyd4JCm";
+
 
 /**
  * Fetch and store latest crypto prices
