@@ -11,29 +11,32 @@ const SPRING_BOOT_URL = process.env.SPRING_BOOT_URL || "https://cryptonex-backen
 // Global in-memory object to hold conversation context
 const conversationMemory = {};
 
-const conversationMemory = { history: [] };
-let inactivityTimer;
-
-// Helper function to update conversation history
-function updateConversationMemory(userMessage, botReply) {
-  conversationMemory.history.push(`User: ${userMessage}`);
-  conversationMemory.history.push(`Bot: ${botReply}`);
-  
-  // Limit history to the most recent 20 entries
-  if (conversationMemory.history.length > 20) {
-    conversationMemory.history = conversationMemory.history.slice(-20);
+// Updated updateConversationMemory function that resets inactivity timer per user.
+function updateConversationMemory(userId, userMessage, botReply) {
+  // Initialize conversation memory for the user if not already present.
+  if (!conversationMemory[userId]) {
+    conversationMemory[userId] = { history: [] };
   }
   
-  // Reset the inactivity timer
-  if (inactivityTimer) {
-    clearTimeout(inactivityTimer);
+  // Add the new messages to the conversation history.
+  conversationMemory[userId].history.push(`User: ${userMessage}`);
+  conversationMemory[userId].history.push(`Bot: ${botReply}`);
+  
+  // Limit history to the most recent 20 entries.
+  if (conversationMemory[userId].history.length > 20) {
+    conversationMemory[userId].history = conversationMemory[userId].history.slice(-20);
   }
   
-  // Set a new inactivity timer for 5 minutes (300,000 ms)
-  inactivityTimer = setTimeout(() => {
-    conversationMemory.history = [];
-    console.log("Cleared conversation history due to inactivity.");
-  }, 300000);
+  // Clear any existing inactivity timer.
+  if (conversationMemory[userId].inactivityTimer) {
+    clearTimeout(conversationMemory[userId].inactivityTimer);
+  }
+  
+  // Set a new inactivity timer to delete the conversation memory after 5 minutes.
+  conversationMemory[userId].inactivityTimer = setTimeout(() => {
+    delete conversationMemory[userId];
+    console.log(`Conversation memory for user ${userId} deleted due to inactivity.`);
+  }, 5 * 60 * 1000); // 5 minutes in milliseconds
 }
 
 
