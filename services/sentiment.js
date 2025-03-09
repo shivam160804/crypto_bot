@@ -4,7 +4,7 @@ const vader = require("vader-sentiment");
 require("dotenv").config();
 
 const CRYPTOPANIC_API_URL = "https://cryptopanic.com/api/v1/posts/";
-const API_KEY = process.env.CRYPTOPANIC_API_KEY;
+const API_KEY = "8ba2473a9f47380df5b09293b8b3c8961416d974";
 
 /**
  * Fetch and store latest crypto news with sentiment analysis
